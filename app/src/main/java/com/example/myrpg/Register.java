@@ -1,9 +1,13 @@
 package com.example.myrpg;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.viewpager.widget.ViewPager;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -20,8 +24,16 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.UnsupportedEncodingException;
 import java.security.GeneralSecurityException;
@@ -34,7 +46,9 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.ConcurrentModificationException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -50,19 +64,9 @@ import in.goodiebag.carouselpicker.CarouselPicker;
 
 public class Register extends AppCompatActivity {
 
-    private TextView mTExtView;
     AutoCompleteTextView autocomplete_Gender;
 
-    private static final int ITERATION_COUNT = 1000;
-    private static final int KEY_LENGTH = 256;
-    private static final String PBKDF2_DERIVATION_ALGORITHM = "PBKDF2WithHmacSHA1";
-    private static final String CIPHER_ALGORITHM = "AES/CBC/PKCS5Padding";
-    private static final int PKCS5_SALT_LENGTH = 32;
-    private static final String DELIMITER = "]";
-    private static final SecureRandom random = new SecureRandom();
-
     SharedPreferences sp;
-    Date currentTime;
 
     String username = "";
     String email = "";
@@ -70,6 +74,7 @@ public class Register extends AppCompatActivity {
     String gender = "";
     String password = "";
     String confirmPassword = "";
+    String myCharImage = "";;
 
     boolean username_bool;
     boolean email_bool;
@@ -88,7 +93,6 @@ public class Register extends AppCompatActivity {
     TextInputLayout textInputLayout_password;
     TextInputLayout textInputLayout_confirmPassword;
 
-
     TextInputEditText username_txt;
     TextInputEditText email_txt;
     TextInputEditText birthday_txt;
@@ -105,6 +109,8 @@ public class Register extends AppCompatActivity {
         setContentView(R.layout.activity_register);
 
         btnReady = findViewById(R.id.button_ready);
+
+        sp = getSharedPreferences("SaveRegisterInfo", Context.MODE_PRIVATE);
 
         username_txt = findViewById(R.id.username_text);
         email_txt = findViewById(R.id.Email_text);
@@ -145,6 +151,8 @@ public class Register extends AppCompatActivity {
 
                 confirmPassword_bool = validadeConfirmPassword();
 
+                SendToFirebase(email, password);
+
             }
         });
 
@@ -173,34 +181,140 @@ public class Register extends AppCompatActivity {
     //endregion
 
         carouselPicker = findViewById(R.id.carouselPicker);
-        List<CarouselPicker.PickerItem> itensImages = new ArrayList<>();
-        itensImages.add(new CarouselPicker.DrawableItem(R.mipmap.ic_shenojiva_round));
-        itensImages.add(new CarouselPicker.DrawableItem(R.mipmap.ic_behemoth_round));
-        itensImages.add(new CarouselPicker.DrawableItem(R.mipmap.ic_garuga_round));
-        itensImages.add(new CarouselPicker.DrawableItem(R.mipmap.ic_nargacuga_round));
-        itensImages.add(new CarouselPicker.DrawableItem(R.mipmap.ic_rajang_round));
+        List<CarouselPicker.PickerItem> itemsImages = new ArrayList<>();
+        itemsImages.add(new CarouselPicker.DrawableItem(R.mipmap.ic_shenojiva_foreground));
+        itemsImages.add(new CarouselPicker.DrawableItem(R.mipmap.ic_behemoth_foreground));
+        itemsImages.add(new CarouselPicker.DrawableItem(R.mipmap.ic_garuga_foreground));
+        itemsImages.add(new CarouselPicker.DrawableItem(R.mipmap.ic_nargacuga_foreground));
+        itemsImages.add(new CarouselPicker.DrawableItem(R.mipmap.ic_rajang_foreground));
 
-        CarouselPicker.CarouselViewAdapter imageAdapter = new CarouselPicker.CarouselViewAdapter(this, itensImages, 0);
+        CarouselPicker.CarouselViewAdapter imageAdapter = new CarouselPicker.CarouselViewAdapter(this, itemsImages, 0);
         carouselPicker.setAdapter(imageAdapter);
+
+        carouselPicker.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                switch (position){
+                    case 0:
+                        myCharImage = ""+ getResources().getResourceName(R.mipmap.ic_shenojiva_foreground);
+                        break;
+                    case 1:
+                        myCharImage = ""+ getResources().getResourceName(R.mipmap.ic_behemoth_foreground);
+                        break;
+                    case 2:
+                        myCharImage = ""+ getResources().getResourceName(R.mipmap.ic_garuga_foreground);
+                        break;
+                    case 3:
+                        myCharImage = ""+ getResources().getResourceName(R.mipmap.ic_nargacuga_foreground);
+                        break;
+                    case 4:
+                        myCharImage = ""+ getResources().getResourceName(R.mipmap.ic_rajang_foreground);
+                        break;
+
+                }
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                switch (position){
+                    case 0:
+                        myCharImage = ""+ getResources().getResourceName(R.mipmap.ic_shenojiva_foreground);
+                        break;
+                    case 1:
+                        myCharImage = ""+ getResources().getResourceName(R.mipmap.ic_behemoth_foreground);
+                        break;
+                    case 2:
+                        myCharImage = ""+ getResources().getResourceName(R.mipmap.ic_garuga_foreground);
+                        break;
+                    case 3:
+                        myCharImage = ""+ getResources().getResourceName(R.mipmap.ic_nargacuga_foreground);
+                        break;
+                    case 4:
+                        myCharImage = ""+ getResources().getResourceName(R.mipmap.ic_rajang_foreground);
+                        break;
+
+                }
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+
+            }
+        });
+    }
+
+    private void SendToFirebase(String email, String password) {
+
+        final FirebaseAuth mAuth = FirebaseAuth.getInstance();
+
+        SharedPreferences.Editor editor = sp.edit();
+
+        editor.putString("password", password);
+        editor.putString("userEmail", email);
+        editor.apply();
+
+        mAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<AuthResult> task) {
+                        if (task.isSuccessful()){
+
+                            FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+                            FirebaseUser user = mAuth.getCurrentUser();
+
+                            Map<String, Object> newUser = new HashMap<>();
+
+                            newUser.put("username", username);
+                            newUser.put("email", sp.getString("userEmail",""));
+                            newUser.put("UID", user.getUid());
+                            newUser.put("birthday",birthday);
+                            newUser.put("gender", gender);
+                            newUser.put("password", sp.getString("password", ""));
+                            newUser.put("imageIconText", myCharImage);
+
+                            Toast.makeText(Register.this, "User Created", Toast.LENGTH_SHORT).show();
+
+                            db.collection("Users")
+                                    .add(newUser).addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                                @Override
+                                public void onSuccess(DocumentReference documentReference) {
+                                    Toast.makeText(Register.this, "Loggin Success", Toast.LENGTH_SHORT).show();
+
+                                    Intent DashboardIntent = new Intent(getApplicationContext(), DashBoard.class);
+                                    startActivity(DashboardIntent);
+
+                                }
+                            });
+                        } else {
+                            Toast.makeText(Register.this, "Login Failed", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
 
     }
 
+    //region Validation of Info
     private boolean validadeConfirmPassword() {
 
         confirmPassword = confirmPassword_txt.getText().toString().trim();
 
         if (confirmPassword.isEmpty()){
             textInputLayout_confirmPassword.setError("Don't forget to put the Confirm Password");
+            confirmPassword_bool = false;
             return false;
         } else if (confirmPassword_txt.getText().toString().length() < 6){
             textInputLayout_confirmPassword.setError("Confirm Password can't be less than 6 digit");
+            confirmPassword_bool = false;
             return false;
         } else if (!confirmPassword.equals(password)){
             textInputLayout_confirmPassword.setError("Confirm Password can't be different from Password");
+            confirmPassword_bool = false;
         } else {
             textInputLayout_confirmPassword.setError(null);
             requestFocus(textInputLayout_confirmPassword);
-
+            confirmPassword_bool = true;
+            return true;
         }
         return true;
     }
@@ -211,15 +325,18 @@ public class Register extends AppCompatActivity {
 
         if (password.isEmpty()){
             textInputLayout_password.setError("Don't forget to put a Password");
+            password_bool = false;
             return false;
         } else if (password.length() < 6){
             textInputLayout_password.setError("Password can't be less than 6 digit");
+            password_bool = false;
             return false;
         } else {
             textInputLayout_password.setError(null);
             requestFocus(textInputLayout_password);
+            password_bool = true;
+            return true;
         }
-        return true;
     }
 
     private boolean validadeGender() {
@@ -228,8 +345,10 @@ public class Register extends AppCompatActivity {
 
         if (gender.isEmpty()) {
             textInputLayout_gender.setError("Don't forget to choose one Gender");
+            gender_bool = false;
             return false;
         }
+        gender_bool = true;
         return true;
     }
 
@@ -239,14 +358,17 @@ public class Register extends AppCompatActivity {
 
         if (birthday.isEmpty()){
             textInputLayout_birthday.setError("Don't forget to put a valid Birthday");
+            birthday_bool = false;
             return false;
         }
         else if (birthday.length() != 10){
             textInputLayout_birthday.setError("Don't forget to put a valid Birthday");
+            birthday_bool = false;
         } else {
             textInputLayout_birthday.setError(null);
             requestFocus(textInputLayout_birthday);
         }
+        birthday_bool = true;
         return true;
     }
 
@@ -256,18 +378,20 @@ public class Register extends AppCompatActivity {
 
         if (email.isEmpty()){
             textInputLayout_email.setError("Don't forget to put a valid Email");
+            email_bool = false;
             return false;
         } else {
             Boolean isValid = Patterns.EMAIL_ADDRESS.matcher(email).matches();
             if (!isValid){
                 textInputLayout_email.setError("Invalid Email Address, ex: abc@example.com");
+                email_bool = false;
                 return false;
             } else {
                 textInputLayout_email.setError(null);
                 requestFocus(textInputLayout_email);
-
             }
         }
+        email_bool = true;
         return true;
     }
 
@@ -281,84 +405,17 @@ public class Register extends AppCompatActivity {
             textInputLayout_username.setError("Don't forged to put a Username");
         }else if (username.length() <= 4){
             textInputLayout_username.setError("Username can't be less than 4 digit");
+            username_bool = false;
             return false;
         } else {
             textInputLayout_username.setError(null);
             requestFocus(textInputLayout_username);
         }
+        username_bool = true;
         return true;
     }
 
-    public static String Encrypt(String plaintext, String password) {
-        byte[] salt = generateSalt();
-        SecretKey key = deriveKey(password, salt);
-
-        try {
-            Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM);
-            byte[] iv = generateIV(cipher.getBlockSize());
-            IvParameterSpec ivParams = new IvParameterSpec(iv);
-            cipher.init(Cipher.ENCRYPT_MODE, key, ivParams);
-            byte[] cipherText = cipher.doFinal(plaintext.getBytes("UTF-8"));
-
-            if (salt != null) {
-                return String.format("%s%s%s%s%s",
-                        toBase64(salt),
-                        DELIMITER,
-                        toBase64(iv),
-                        DELIMITER,
-                        toBase64(cipherText));
-            }
-
-            return String.format("%s%s%s",
-                    toBase64(iv),
-                    DELIMITER,
-                    toBase64(cipherText));
-
-        } catch (NoSuchPaddingException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        } catch (IllegalBlockSizeException e) {
-            e.printStackTrace();
-        }
-
-        return "";
-    }
-
-    private static SecretKey deriveKey(String password, byte[] salt) {
-        try{
-            KeySpec keySpec = new PBEKeySpec(password.toCharArray(), salt, ITERATION_COUNT, KEY_LENGTH);
-            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance(PBKDF2_DERIVATION_ALGORITHM);
-            byte[] keyBytes = keyFactory.generateSecret(keySpec).getEncoded();
-            return new SecretKeySpec(keyBytes, "AES");
-        } catch (GeneralSecurityException e){
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static Object toBase64(byte[] salt) {
-        return Base64.encodeToString(salt,Base64.NO_WRAP);
-    }
-
-    private static byte[] generateIV(int blockSize) {
-        byte[] b = new byte[blockSize];
-        random.nextBytes(b);
-        return b;
-    }
-
-    private static byte[] generateSalt() {
-        byte[] b = new byte[PKCS5_SALT_LENGTH];
-        random.nextBytes(b);
-        return b;
-    }
+    //endregion
 
     private void requestFocus(View view){
         if (view. requestFocus()){
@@ -404,7 +461,7 @@ public class Register extends AppCompatActivity {
 
         @Override
         public void afterTextChanged(Editable editable) {
-            if (validateUser() && validadeEmail() && validadeBirthday() && validadeGender() && validadePassword() && validadeConfirmPassword()){
+            if (username_bool && email_bool && birthday_bool && gender_bool && password_bool && confirmPassword_bool){
                 btnReady.setEnabled(true);
             } else {
                 btnReady.setEnabled(false);

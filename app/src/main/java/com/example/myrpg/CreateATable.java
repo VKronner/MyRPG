@@ -4,14 +4,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
 
-
-public class DashBoard extends AppCompatActivity {
-
+public class CreateATable extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_dash_board);
-
+        setContentView(R.layout.activity_create_a_table);
     }
 }
