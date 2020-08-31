@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "419691412953",
+    "firebase_url": "https://myrpg-f41b5.firebaseio.com",
+    "project_id": "myrpg-f41b5",
+    "storage_bucket": "myrpg-f41b5.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:419691412953:android:c8172e2a30850bd505edc8",
+        "android_client_info": {
+          "package_name": "com.example.myrpg"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "419691412953-1j5vbgmoshom5beqnuqjj10rn4h164fp.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZcSqMKDZ877qhj4mrVqh7RnUepGL_mp0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "419691412953-1j5vbgmoshom5beqnuqjj10rn4h164fp.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
